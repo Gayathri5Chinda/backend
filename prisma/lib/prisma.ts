@@ -1,10 +1,19 @@
-import "dotenv/config";
-import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../generated/prisma/client";
+import { withAccelerate } from "@prisma/extension-accelerate";
 
-const connectionString = `${process.env.DATABASE_URL}`;
+let prisma: ReturnType<typeof createPrisma> | undefined;
 
-const adapter = new PrismaPg({ connectionString });
-const prisma = new PrismaClient({ adapter });
+function createPrisma(accelerateUrl: string) {
+  return new PrismaClient({ accelerateUrl }).$extends(withAccelerate());
+}
 
-export { prisma };
+export function getPrisma(accelerateUrl: string) {
+  if (!accelerateUrl) {
+    throw new Error("DATABASE_URL is not configured");
+  }
+
+  prisma ??= createPrisma(accelerateUrl);
+  return prisma;
+}
+
+export type Prisma = ReturnType<typeof getPrisma>;
